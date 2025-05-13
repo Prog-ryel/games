@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Vision Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* Custom styling for PhET simulation buttons */
+        :root {
+            --highlight-color: #ffff00;
+            --glow-color: rgba(255, 255, 0, 0.7);
+        }
+        
+        /* Style injection for the simulation buttons */
+        .custom-style-injection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            z-index: 500;
+        }
+        
+        /* These styles will be injected into the iframe content */
+        .sim-button-effects {
+            display: none;
+        }
+        
+        /* End of style injection */
+        
+        .simulation-container {
+            width: 100%;
+            max-width: 1000px;
+            height: 600px;
+            overflow: hidden;
+            position: relative;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        .nav-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to right, #2c3e50, #4b6cb7);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .nav-title {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+        }
+        .nav-title .color-text {
+            background: linear-gradient(to right, 
+                #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-right: 5px;
+            font-weight: bold;
+            text-shadow: none;
+            animation: rainbow 6s linear infinite;
+            position: relative;
+            display: inline-block;
+        }
+        .nav-title .color-text:after {
+            content: 'Color Vision';
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            color: transparent;
+            filter: blur(4px);
+            background: inherit;
+            -webkit-background-clip: text;
+            background-clip: text;
+            opacity: 0.7;
+        }
+        @keyframes rainbow {
+            0% {background-position: 0% center;}
+            100% {background-position: 200% center;}
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        .nav-button {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+        .nav-button.active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .nav-button.primary {
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+        }
+        .nav-button.primary:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+        .info-popup {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 1000;
+            min-width: 200px;
+            max-width: calc(103% - 39px);
+            border-left: 4px solid #4b6cb7;
+        }
+        .info-popup.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .info-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        .info-content {
+            color: #505a66;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        .info-content p {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .info-content p strong {
+            color: #2c3e50;
+        }
+        .info-content p:before {
+            content: "•";
+            position: absolute;
+            left: 5px;
+            color: #4b6cb7;
+            font-weight: bold;
+        }
+        iframe {
+            border: none;
+            margin: 0;
+            padding: 0;
+            position: absolute;
+            top: 45px;
+            left: 0;
+            width: 100%;
+            height: calc(100% + 9px);
+            transform: translateY(0);
+            overflow: hidden;
+        }
+        
+        /* Custom Loading Screen */
+        .custom-loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a2e;
+            background-image: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+        .spinner {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            margin-bottom: 25px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        .spinner:before, .spinner:after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #ff2e63;
+            opacity: 0.7;
+            top: 0;
+            left: 0;
+            animation: pulseRing 2s infinite;
+        }
+        .spinner:after {
+            background-color: #08d9d6;
+            animation-delay: 0.5s;
+        }
+        .loading-text {
+            color: #eaeaea;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 18px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(8, 217, 214, 0.7);
+            animation: blink 1.2s infinite;
+        }
+        .loading-dots {
+            display: inline-block;
+            width: 40px;
+            text-align: left;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.85); }
+            50% { transform: scale(1); }
+            100% { transform: scale(0.85); }
+        }
+        @keyframes pulseRing {
+            0% {
+                transform: scale(0.5);
+                opacity: 0.7;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.3;
+            }
+            100% {
+                transform: scale(0.5);
+                opacity: 0.7;
+            }
+        }
+        @keyframes blink {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+        .custom-loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .simulation-container {
+                height: 100vh;
+                border-radius: 0;
+            }
+            .nav-bar {
+                padding: 10px;
+            }
+            .nav-title {
+                font-size: 16px;
+            }
+            .nav-buttons {
+                gap: 8px;
+            }
+            .nav-button {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+            .info-popup {
+                top: 90px;
+                right: 10px;
+                left: 10px;
+                max-width: calc(100% - 20px);
+            }
+            iframe {
+                height: calc(100% + 50px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-bar {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 8px;
+            }
+            .nav-title {
+                text-align: center;
+                margin-bottom: 8px;
+            }
+            .nav-buttons {
+                justify-content: center;
+            }
+            .info-popup {
+                top: 110px;
+            }
+            iframe {
+                top: 85px;
+                height: calc(100% + 50px);
+            }
+        }
+
+        /* Game Mode Buttons */
+        .game-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 101;
+        }
+        .mode-button {
+            background: rgba(44, 62, 80, 0.9);
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .mode-button:before {
+            content: "⬅";
+            font-size: 16px;
+            margin-right: 3px;
+        }
+        .mode-button:hover {
+            background: rgba(75, 108, 183, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .mode-button:active {
+            transform: translateY(0);
+        }
+        .mode-button.pulse {
+            animation: pulse-button 2s infinite;
+        }
+        
+        @keyframes pulse-button {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Custom title overlay for iframe */
+        .iframe-title-overlay {
+            position: absolute;
+            top: 140px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            z-index: 90;
+            pointer-events: none; /* Allow clicks to pass through */
+        }
+        .iframe-title-text {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(to right, 
+                #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow-iframe 6s linear infinite;
+            display: inline-block;
+            text-shadow: 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .iframe-title-text:after {
+            content: "Color Vision";
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            color: transparent;
+            filter: blur(8px);
+            background: inherit;
+            -webkit-background-clip: text;
+            background-clip: text;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulation-container">
+        <div class="nav-bar">
+            <div class="nav-title"><span class="color-text">Color Vision</span> Simulator</div>
+            <div class="nav-buttons">
+                <button class="nav-button primary" onclick="showInfo('instructions')">Instructions</button>
+                <button class="nav-button" onclick="showInfo('dev')">Game Developer</button>
+                <button class="nav-button" onclick="showInfo('tech')">Programming Language</button>
+            </div>
+        </div>
+
+        <!-- Game Mode Controls -->
+        <div class="game-controls">
+            <button class="mode-button pulse" id="backButton" onclick="goBack()">Back</button>
+        </div>
+
+        <!-- Info Popups -->
+        <div id="instructionsInfo" class="info-popup">
+            <div class="info-title">Game Instructions</div>
+            <div class="info-content">
+                <p><strong>Single Bulb Mode:</strong> Use the slider to change the color of light. Click and drag the bulb to move it. See how different colored light affects perception.</p>
+                <p><strong>RGB Bulbs Mode:</strong> Control red, green, and blue lights separately. Toggle each bulb on/off with the buttons. Adjust their intensity with the sliders.</p>
+                <p><strong>Filter Options:</strong> Click the filter button to add a filter between the light and the person. See how filters absorb certain wavelengths and change perception.</p>
+                <p><strong>Person View:</strong> Toggle between "photons" and "brain" view with the icons. Brain view shows perceived color while photon view shows actual light waves.</p>
+                <p><strong>Reset:</strong> Click the refresh button in the simulation to reset to default settings.</p>
+                <p><strong>Back Button:</strong> Click the "Back" button in the bottom left corner to go back to the previous screen.</p>
+            </div>
+        </div>
+        <div id="devInfo" class="info-popup">
+            <div class="info-title">Game Developer</div>
+            <div class="info-content">
+                This game draws inspiration from the original PhET Interactive Simulations developed at the University of Colorado Boulder. We've enhanced the interface while preserving the core interactive learning experience.
+            </div>
+        </div>
+        <div id="techInfo" class="info-popup">
+            <div class="info-title">Programming Language</div>
+            <div class="info-content">
+                Built using JavaScript, HTML5, and CSS3 with advanced WebGL graphics rendering
+            </div>
+        </div>
+
+        <!-- Custom Loading Screen -->
+        <div class="custom-loader">
+            <div class="spinner"></div>
+            <div class="loading-text">LOADING<span class="loading-dots">...</span></div>
+        </div>
+        
+        <!-- Iframe will be loaded here dynamically -->
+        <div id="simulation-frame-container"></div>
+        
+        <!-- Style injection container -->
+        <div class="custom-style-injection">
+            <style class="sim-button-effects">
+                /* Highlight for the simulation buttons */
+                .single-bulb-sim-button, .rgb-bulbs-button {
+                    transition: transform 0.3s, box-shadow 0.3s !important;
+                    position: relative;
+                    z-index: 10;
+                }
+                
+                .single-bulb-sim-button:hover, .rgb-bulbs-button:hover {
+                    transform: scale(1.05) !important;
+                    box-shadow: 0 0 20px var(--glow-color) !important;
+                    cursor: pointer !important;
+                }
+                
+                /* Yellow highlight outline for Single Bulb option */
+                .single-bulb-sim-button {
+                    outline: 2px solid var(--highlight-color) !important;
+                }
+                
+                /* Pulse animation for buttons */
+                @keyframes pulse-border {
+                    0% { outline-color: rgba(255, 255, 0, 0.5) !important; }
+                    50% { outline-color: rgba(255, 255, 0, 1) !important; }
+                    100% { outline-color: rgba(255, 255, 0, 0.5) !important; }
+                }
+                
+                .sim-button-hover-active {
+                    animation: pulse-border 2s infinite !important;
+                }
+                
+                /* Colorful title in the iframe */
+                .home-screen-title {
+                    display: inline-block !important;
+                    background: linear-gradient(to right, 
+                        #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff) !important;
+                    background-size: 200% auto !important;
+                    -webkit-background-clip: text !important;
+                    background-clip: text !important;
+                    color: transparent !important;
+                    animation: rainbow-iframe 6s linear infinite !important;
+                    text-shadow: none !important;
+                }
+                
+                @keyframes rainbow-iframe {
+                    0% {background-position: 0% center !important;}
+                    100% {background-position: 200% center !important;}
+                }
+                
+                /* Glow effect for title */
+                .home-screen-title:after {
+                    content: attr(data-text) !important;
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    z-index: -1 !important;
+                    color: transparent !important;
+                    filter: blur(4px) !important;
+                    background: inherit !important;
+                    -webkit-background-clip: text !important;
+                    background-clip: text !important;
+                    opacity: 0.7 !important;
+                }
+            </style>
+        </div>
+    </div>
+    <script>
+        // URL obfuscation
+        function obfuscateURL(url) {
+            // More complex encoding to hide the URL
+            return btoa(encodeURIComponent(url).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+        }
+        
+        function deobfuscateURL(encoded) {
+            // More complex decoding
+            return decodeURIComponent(atob(encoded).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+        
+        // Store encoded URL - split into parts to make it harder to find in source code
+        const part1 = "aHR0cHM6Ly9waGV0LmNvbG9";
+        const part2 = "yYWRvLmVkdS9zaW1zL2h0bWwvY29s";
+        const part3 = "b3ItdmlzaW9uL2xhdGVzdC9jb2xvci12aXNpb25fZW4uaHRtbD9icmFuZD1mYWxzZQ==";
+        
+        window.onload = function() {
+            // Create iframe dynamically
+            const frameContainer = document.getElementById('simulation-frame-container');
+            const iframe = document.createElement('iframe');
+            iframe.id = 'simFrame';
+            iframe.allowFullscreen = true;
+            iframe.allow = 'fullscreen';
+            iframe.frameBorder = '0';
+            
+            // Apply styles that were previously in HTML
+            iframe.style.border = 'none';
+            iframe.style.margin = '0';
+            iframe.style.padding = '0';
+            iframe.style.position = 'absolute';
+            iframe.style.top = '45px';
+            iframe.style.left = '0';
+            iframe.style.width = '100%';
+            iframe.style.height = 'calc(100% + 9px)';
+            iframe.style.transform = 'translateY(0)';
+            iframe.style.overflow = 'hidden';
+            
+            // Disable right-click on iframe
+            document.addEventListener('contextmenu', function(e) {
+                if (e.target.tagName === 'IFRAME' || e.target.closest('#simulation-frame-container')) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            
+            const loader = document.querySelector('.custom-loader');
+            const loadingDots = document.querySelector('.loading-dots');
+            const backButton = document.getElementById('backButton');
+            
+            let iframeLoaded = false;
+            let loadingStartTime = Date.now();
+            
+            // Animate loading dots
+            let dotCount = 0;
+            const dotAnimation = setInterval(() => {
+                dotCount = (dotCount + 1) % 4;
+                loadingDots.textContent = '.'.repeat(dotCount);
+            }, 400);
+            
+            // Load the iframe after a delay to ensure our loading screen is visible first
+            setTimeout(() => {
+                const encodedUrl = part1 + part2 + part3;
+                iframe.src = deobfuscateURL(encodedUrl);
+                frameContainer.appendChild(iframe);
+                
+                iframe.onload = function() {
+                    iframeLoaded = true;
+                    
+                    // Keep our loading screen visible for at least 4 seconds total
+                    const loadingTime = Date.now() - loadingStartTime;
+                    const additionalDelay = Math.max(0, 4000 - loadingTime);
+                    
+                    setTimeout(() => {
+                        try {
+                            injectStyles();
+                            
+                            // Wait another 2.5s after styles are injected to ensure original loading is gone
+                            setTimeout(() => {
+                                loader.classList.add('hidden');
+                            }, 2500);
+                        } catch (e) {
+                            console.error('Error injecting styles:', e);
+                            // Still hide loader even if error
+                            loader.classList.add('hidden');
+                        }
+                    }, additionalDelay);
+                };
+            }, 800);
+            
+            // Fallback timer in case iframe never loads
+            setTimeout(() => {
+                clearInterval(dotAnimation);
+                
+                if (!iframeLoaded) {
+                    // Only hide if iframe never loaded (fallback)
+                    if (!loader.classList.contains('hidden')) {
+                        loader.classList.add('hidden');
+                    }
+                }
+                
+                // Stop pulsing the back button after 5 seconds
+                setTimeout(() => {
+                    if (backButton) backButton.classList.remove('pulse');
+                }, 5000);
+            }, 15000);
+        };
+        
+        // Function to inject custom styles into the iframe
+        function injectStyles() {
+            const iframe = document.getElementById('simFrame');
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            
+            if (!iframeDoc) return;
+            
+            // Get our styles
+            const styles = document.querySelector('.sim-button-effects').innerHTML;
+            
+            // Create a new style element in the iframe
+            const styleElement = iframeDoc.createElement('style');
+            styleElement.type = 'text/css';
+            styleElement.innerHTML = styles;
+            iframeDoc.head.appendChild(styleElement);
+            
+            // Add hover event listeners to the buttons
+            setTimeout(() => {
+                try {
+                    // Try to find the simulation buttons
+                    const singleBulbButton = iframeDoc.querySelector('.home-screen-options > div:first-child');
+                    const rgbBulbsButton = iframeDoc.querySelector('.home-screen-options > div:last-child');
+                    
+                    if (singleBulbButton) {
+                        singleBulbButton.classList.add('single-bulb-sim-button');
+                        singleBulbButton.classList.add('sim-button-hover-active');
+                    }
+                    
+                    if (rgbBulbsButton) {
+                        rgbBulbsButton.classList.add('rgb-bulbs-button');
+                    }
+                    
+                    // Find and modify the title
+                    const homeScreenTitle = iframeDoc.querySelector('.home-screen-title');
+                    if (homeScreenTitle) {
+                        // Store the original text for the after pseudo-element
+                        homeScreenTitle.setAttribute('data-text', homeScreenTitle.textContent);
+                        // Make the title position relative for the glow effect
+                        homeScreenTitle.style.position = 'relative';
+                    }
+                    
+                    // Continue looking for the title if screen changes
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.type === 'childList') {
+                                const title = iframeDoc.querySelector('.play-area-title');
+                                if (title && !title.hasAttribute('data-colored')) {
+                                    title.classList.add('home-screen-title');
+                                    title.setAttribute('data-text', title.textContent);
+                                    title.style.position = 'relative';
+                                    title.setAttribute('data-colored', 'true');
+                                }
+                            }
+                        });
+                    });
+                    
+                    observer.observe(iframeDoc.body, { 
+                        childList: true,
+                        subtree: true
+                    });
+                    
+                } catch (e) {
+                    console.error('Error adding button effects:', e);
+                }
+            }, 1500);
+        }
+
+        function goBack() {
+            const loader = document.querySelector('.custom-loader');
+            const loadingDots = document.querySelector('.loading-dots');
+            
+            // Show our loading screen first
+            loader.classList.remove('hidden');
+            loader.style.opacity = '1';
+            
+            // Animate loading dots
+            let dotCount = 0;
+            const dotAnimation = setInterval(() => {
+                dotCount = (dotCount + 1) % 4;
+                loadingDots.textContent = '.'.repeat(dotCount);
+            }, 400);
+            
+            // Small delay to ensure our loader shows first
+            setTimeout(() => {
+                clearInterval(dotAnimation);
+                history.back(); // Use browser's back function instead of redirecting
+            }, 1000);
+        }
+
+        let currentInfo = null;
+        function showInfo(type) {
+            const instructionsInfo = document.getElementById('instructionsInfo');
+            const devInfo = document.getElementById('devInfo');
+            const techInfo = document.getElementById('techInfo');
+            
+            instructionsInfo.classList.remove('show');
+            devInfo.classList.remove('show');
+            techInfo.classList.remove('show');
+            
+            if (currentInfo === type) {
+                currentInfo = null;
+                return;
+            }
+            
+            if (type === 'instructions') {
+                instructionsInfo.classList.add('show');
+            } else if (type === 'dev') {
+                devInfo.classList.add('show');
+            } else if (type === 'tech') {
+                techInfo.classList.add('show');
+            }
+            
+            currentInfo = type;
+        }
+
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.nav-button') && !event.target.closest('.info-popup')) {
+                document.querySelectorAll('.info-popup').forEach(popup => {
+                    popup.classList.remove('show');
+                });
+                currentInfo = null;
+            }
+        });
+    </script>
+</body>
+</html>
