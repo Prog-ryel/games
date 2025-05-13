@@ -299,6 +299,123 @@
                 margin-bottom: 10px;
             }
         }
+        
+        /* Additional mobile optimizations */
+        @media (max-width: 480px) {
+            .welcome-title {
+                font-size: 1.8rem;
+            }
+            
+            .subtitle {
+                font-size: 0.9rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .card {
+                padding: 15px;
+                margin-bottom: 25px;
+            }
+            
+            .feature {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .feature-icon {
+                font-size: 2rem;
+                margin-bottom: 10px;
+            }
+            
+            .start-button {
+                padding: 12px 25px;
+                font-size: 1rem;
+                width: 80%;
+                max-width: 250px;
+            }
+            
+            .scroll-indicator {
+                bottom: 15px;
+                font-size: 1.5rem;
+            }
+            
+            .orientation-icon {
+                font-size: 40px;
+            }
+            
+            .step {
+                margin-bottom: 20px;
+            }
+            
+            .step-number {
+                font-size: 2.5rem;
+            }
+            
+            .step-content h3 {
+                font-size: 1.2rem;
+            }
+            
+            .scroll-top {
+                bottom: 15px;
+                right: 15px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+        
+        /* Landscape orientation fixes */
+        @media (max-height: 500px) and (orientation: landscape) {
+            section {
+                padding: 10px 0;
+                min-height: auto;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .welcome-title {
+                font-size: 1.8rem;
+                margin-bottom: 0.3rem;
+            }
+            
+            .subtitle {
+                margin-bottom: 1rem;
+            }
+            
+            .card {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+            
+            .features {
+                flex-direction: row;
+                flex-wrap: wrap;
+                margin: 15px 0;
+            }
+            
+            .feature {
+                min-width: 150px;
+                padding: 10px;
+            }
+            
+            .feature-icon {
+                font-size: 1.8rem;
+                margin-bottom: 8px;
+            }
+            
+            .scroll-indicator {
+                display: none;
+            }
+            
+            .how-it-works {
+                padding: 15px;
+            }
+            
+            .how-it-works h2 {
+                margin-bottom: 15px;
+                font-size: 1.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -426,7 +543,44 @@
             });
         }
         
-        window.addEventListener('load', animateOnScroll);
+        // Check if device is mobile
+        function isMobileDevice() {
+            return (window.innerWidth <= 768) || 
+                  (navigator.userAgent.match(/Android/i) ||
+                   navigator.userAgent.match(/webOS/i) ||
+                   navigator.userAgent.match(/iPhone/i) ||
+                   navigator.userAgent.match(/iPad/i) ||
+                   navigator.userAgent.match(/iPod/i) ||
+                   navigator.userAgent.match(/BlackBerry/i) ||
+                   navigator.userAgent.match(/Windows Phone/i));
+        }
+        
+        // Optimize mobile experience
+        function optimizeMobileExperience() {
+            if (isMobileDevice()) {
+                // Adjust scroll behavior for mobile
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetId = this.getAttribute('href');
+                        const targetElement = document.querySelector(targetId);
+                        if (targetElement) {
+                            targetElement.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    });
+                });
+                
+                // Optimize touch targets
+                document.querySelectorAll('.feature, .start-button, .scroll-top').forEach(el => {
+                    el.style.touchAction = 'manipulation';
+                });
+            }
+        }
+        
+        window.addEventListener('load', function() {
+            animateOnScroll();
+            optimizeMobileExperience();
+        });
     </script>
 </body>
 </html> 
