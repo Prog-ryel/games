@@ -398,7 +398,7 @@
             .loading-text {
                 font-size: 16px;
             }
-            .loading-progress-container {
+            .loading-progress-container { 
                 width: 180px;
                 height: 5px;
             }
@@ -500,6 +500,12 @@
             display: flex;
             gap: 15px;
             z-index: 101;
+        }
+        @media (max-width: 680px) {
+            .game-controls {
+                margin-bottom: 4rem;
+                left: 10px;
+            }
         }
         .mode-button {
             background: rgba(44, 62, 80, 0.9);
@@ -744,10 +750,10 @@
             
             // Adjust timing for mobile vs desktop
             const timings = {
-                initialDelay: isMobile ? 1200 : 800,         // Longer initial delay on mobile
-                minLoadingTime: isMobile ? 5500 : 4000,      // Longer minimum loading time on mobile
-                styleInjectionDelay: isMobile ? 3500 : 2500, // Longer delay after styles injected
-                fallbackTimer: isMobile ? 20000 : 15000      // Longer fallback timer on mobile
+                initialDelay: isMobile ? 5000 : 4000,         // Longer initial delay
+                minLoadingTime: isMobile ? 25000 : 20000,     // Much longer minimum loading time
+                styleInjectionDelay: isMobile ? 15000 : 10000, // Longer delay after styles injected
+                fallbackTimer: isMobile ? 60000 : 55000      // Longer fallback timer (around 1 minute)
             };
             
             // Handle orientation changes or window resizing
@@ -863,13 +869,13 @@
                 const elapsedTime = Date.now() - loadingStartTime;
                 let calculatedProgress = Math.min(98, (elapsedTime / totalLoadTime) * 100);
                 
-                // If iframe is loaded, progress faster
+                // If iframe is loaded, progress a bit faster but still slow
                 if (iframeLoaded && calculatedProgress < 70) {
-                    calculatedProgress = 70;
+                    calculatedProgress = calculatedProgress * 0.8 + 70 * 0.2;
                 }
                 
-                // Smooth progress bar
-                progress = progress * 0.8 + calculatedProgress * 0.2;
+                // Slower progress bar movement
+                progress = progress * 0.9 + calculatedProgress * 0.1;
                 progressBar.style.width = progress + '%';
                 
                 // When loader is hidden, reach 100%
@@ -888,7 +894,7 @@
                 iframe.onload = function() {
                     iframeLoaded = true;
                     
-                    // Keep our loading screen visible for at least the minimum loading time
+                    // Much longer minimum loading time
                     const loadingTime = Date.now() - loadingStartTime;
                     const additionalDelay = Math.max(0, timings.minLoadingTime - loadingTime);
                     
@@ -899,37 +905,37 @@
                             // Adjust iframe position for mobile
                             adjustIframePositionForMobile();
                             
-                            // Wait another delay after styles are injected to ensure original loading is gone
+                            // Wait longer delay after styles are injected to ensure original loading is gone
                             setTimeout(() => {
                                 loader.classList.add('hidden');
                                 console.log('Loading screen hidden. Device: ' + (isMobile ? 'mobile' : 'desktop'));
                             }, timings.styleInjectionDelay);
                         } catch (e) {
                             console.error('Error injecting styles:', e);
-                            // Still hide loader even if error
-                            loader.classList.add('hidden');
+                            // Still hide loader even if error after the delay
+                            setTimeout(() => {
+                                loader.classList.add('hidden');
+                            }, timings.styleInjectionDelay);
                         }
                     }, additionalDelay);
                 };
             }, timings.initialDelay);
             
-            // Fallback timer in case iframe never loads
+            // Fallback timer in case iframe never loads or something goes wrong
             setTimeout(() => {
                 clearInterval(dotAnimation);
                 clearInterval(progressInterval);
                 
-                if (!iframeLoaded) {
-                    // Only hide if iframe never loaded (fallback)
-                    if (!loader.classList.contains('hidden')) {
-                        loader.classList.add('hidden');
-                        console.log('Fallback timer triggered to hide loading screen');
-                    }
+                // Always hide the loader after fallback time regardless of iframe load status
+                if (!loader.classList.contains('hidden')) {
+                    loader.classList.add('hidden');
+                    console.log('Fallback timer triggered to hide loading screen');
                 }
                 
-                // Stop pulsing the back button after 5 seconds
+                // Stop pulsing the back button after 2 seconds
                 setTimeout(() => {
                     if (backButton) backButton.classList.remove('pulse');
-                }, 5000);
+                }, 2000);
             }, timings.fallbackTimer);
         };
         
