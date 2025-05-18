@@ -1056,7 +1056,7 @@
             // Small delay to ensure our loader shows first
             setTimeout(() => {
                 clearInterval(dotAnimation);
-                history.back(); // Use browser's back function instead of redirecting
+                window.location.href = 'welcome.html'; // Redirect to welcome.html
             }, 1000);
         }
 
